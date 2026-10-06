@@ -3138,11 +3138,21 @@ public class GsmCdmaPhone extends Phone {
 
             case EVENT_REAPPLY_UICC_APPS_ENABLEMENT_DONE: {
                 ar = (AsyncResult) msg.obj;
-                if (ar == null || ar.exception == null) return;
+                if (ar == null) return;
                 Pair<Boolean, Integer> userObject = (Pair) ar.userObj;
                 if (userObject == null) return;
                 boolean expectedValue = userObject.first;
                 int retries = userObject.second;
+                if (ar.exception == null) {
+                    // The RIL successfully applied the setting. Update our cached view of the
+                    // live state so a later comparison in reapplyUiccAppsEnablementIfNeeded()
+                    // isn't left comparing against a stale value (which would silently skip
+                    // re-applying a real change on the next call).
+                    mUiccApplicationsEnabled = expectedValue;
+                    logd("EVENT_REAPPLY_UICC_APPS_ENABLEMENT_DONE: applied " + expectedValue
+                            + " on phone " + mPhoneId);
+                    break;
+                }
                 CommandException.Error error = ((CommandException) ar.exception).getCommandError();
                 loge("Error received when re-applying uicc application"
                         + " setting to " +  expectedValue + " on phone " + mPhoneId
